@@ -1,0 +1,578 @@
+@page "/schedule"
+@using SchedulingApplication.Data
+@using SchedulingApplication.Models
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+@attribute [Authorize]
+
+<div class="schedule-container">
+    <div class="schedule-header">
+        <h3 class="page-title">排班管理</h3>
+    </div>
+
+    <div class="date-navigation-card">
+        <div class="date-navigation">
+            <div class="month-selector">
+                <button class="nav-btn" @onclick="PreviousMonth">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <span class="current-month">@CurrentMonth.ToString("yyyy年MM月")</span>
+                <button class="nav-btn" @onclick="NextMonth">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <button class="today-btn" @onclick="() => CurrentMonth = DateTime.Today">
+                <i class="fas fa-calendar"></i> 返回当月
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-container">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">加载中...</span>
+            </div>
+            <p class="loading-text">加载排班数据中...</p>
+        </div>
+    }
+    else
+    {
+        <div class="calendar-card">
+            <div class="calendar">
+                <div class="calendar-header">
+                    <div class="day-name">星期日</div>
+                    <div class="day-name">星期一</div>
+                    <div class="day-name">星期二</div>
+                    <div class="day-name">星期三</div>
+                    <div class="day-name">星期四</div>
+                    <div class="day-name">星期五</div>
+                    <div class="day-name">星期六</div>
+                </div>
+                <div class="calendar-body">
+                    @foreach (var week in GetCalendarDays())
+                    {
+                        <div class="calendar-week">
+                            @foreach (var day in week)
+                            {
+                                var scheduleForDay = schedules.FirstOrDefault(s => s.Date.Date == day.Date);
+                                var isEditable = day.Date >= DateTime.Today.AddDays(1);
+                                var isPast = day.Date < DateTime.Today;
+                                var isToday = day.Date.Date == DateTime.Today.Date;
+                                var isCurrentMonth = day.Month == CurrentMonth.Month;
+                                var staffName = scheduleForDay?.Staff?.Name ?? "未安排";
+
+                                <div class="@($"calendar-day {(isCurrentMonth ? "" : "other-month")} {(isToday ? "today" : "")} {(isPast ? "past" : "")}")">
+                                    <div class="day-number">@day.Day</div>
+                                    <div class="day-content">
+                                        @if (editingDate == day.Date)
+                                        {
+                                            <div class="edit-container">
+                                                <div class="staff-select-container">
+                                                    <label class="form-label">选择值班人员</label>
+                                                    <select class="staff-select" @bind="selectedStaffId">
+                                                        <option value="">-- 无值班人员 --</option>
+                                                        @foreach (var staff in staffList)
+                                                        {
+                                                            <option value="@staff.Id">@staff.Name</option>
+                                                        }
+                                                    </select>
+                                                </div>
+                                                <div class="action-buttons">
+                                                    <button class="action-btn save-btn" @onclick="SaveSchedule">
+                                                        <i class="oi oi-check"></i> 保存
+                                                    </button>
+                                                    <button class="action-btn cancel-btn" @onclick="CancelEdit">
+                                                        <i class="oi oi-x"></i> 取消
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="@($"staff-name {(staffName == "未安排" ? "not-scheduled" : "scheduled")}")">@staffName</div>
+                                            @if (isEditable)
+                                            {
+                                                <button class="edit-btn" @onclick="() => EditDay(day.Date)">
+                                                    <i class="oi oi-pencil"></i> 编辑
+                                                </button>
+                                            }
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .schedule-container {
+        width: 100%;
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+    }
+
+    .schedule-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+        color: #333;
+        margin-bottom: 0;
+        border-left: 4px solid #3498db;
+        padding-left: 12px;
+    }
+
+    .date-navigation-card {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1.5rem;
+        padding: 1rem 1.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .date-navigation {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .month-selector {
+        display: flex;
+        align-items: center;
+    }
+
+    .current-month {
+        font-size: 1.2rem;
+        font-weight: 500;
+        margin: 0 1rem;
+        min-width: 120px;
+        text-align: center;
+    }
+
+    .nav-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .nav-btn:hover {
+        background-color: #e9ecef;
+    }
+
+    .today-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+    }
+
+    .today-btn:hover {
+        background-color: #2980b9;
+    }
+
+    .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 300px;
+    }
+
+    .loading-text {
+        margin-top: 1rem;
+        color: #6c757d;
+    }
+
+    .calendar-card {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        margin-bottom: 2rem;
+        height: calc(100vh - 200px);
+        min-height: 600px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .calendar {
+        width: 100%;
+        table-layout: fixed;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .calendar-header {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .day-name {
+        text-align: center;
+        padding: 15px 10px;
+        font-weight: 600;
+        color: #495057;
+    }
+
+    .calendar-body {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+    }
+
+    .calendar-week {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        flex: 1;
+    }
+
+    .calendar-day {
+        padding: 10px;
+        border-right: 1px solid #eee;
+        border-bottom: 1px solid #eee;
+        position: relative;
+        transition: background-color 0.2s;
+        min-width: 0;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .calendar-day:hover {
+        background-color: #f8f9fa;
+    }
+
+    .day-number {
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-bottom: 10px;
+        color: #495057;
+    }
+
+    .day-content {
+        font-size: 0.9rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .staff-name {
+        margin-top: 5px;
+        padding: 6px 8px;
+        background-color: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-weight: 500;
+        color: #495057;
+    }
+
+    /* 修改未排班的显示样式 */
+    .not-scheduled {
+        background-color: #f8d7da !important;
+        color: #842029 !important;
+        border: 1px dashed #f5c2c7 !important;
+    }
+
+    /* 修改已排班的显示样式 */
+    .scheduled {
+        background-color: #d1e7dd !important;
+        color: #0f5132 !important;
+        border: 1px solid #badbcc !important;
+    }
+
+    .other-month {
+        background-color: #f8f9fa;
+    }
+
+    .other-month .day-number {
+        color: #adb5bd;
+    }
+
+    .today {
+        background-color: #e3f2fd;
+    }
+
+    .today .day-number {
+        color: #2196f3;
+    }
+
+    .past {
+        background-color: #f8f9fa;
+    }
+
+    .past .day-number {
+        color: #adb5bd;
+    }
+
+    .edit-container {
+        padding: 8px;
+        background-color: #f8f9fa;
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .staff-select-container {
+        margin-bottom: 10px;
+    }
+
+    .staff-select {
+        width: 100%;
+        padding: 6px 8px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        background-color: white;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 6px;
+    }
+
+    .action-btn {
+        padding: 4px 8px;
+        border-radius: 4px;
+        border: none;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        flex: 1;
+        justify-content: center;
+    }
+
+    .save-btn {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .save-btn:hover {
+        background-color: #218838;
+    }
+
+    .cancel-btn {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .cancel-btn:hover {
+        background-color: #5a6268;
+    }
+
+    .edit-btn {
+        margin-top: 8px;
+        padding: 4px 8px;
+        background-color: transparent;
+        border: 1px solid #3498db;
+        color: #3498db;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        width: 100%;
+        transition: all 0.2s;
+    }
+
+    .edit-btn:hover {
+        background-color: #3498db;
+        color: white;
+    }
+
+    @@media (max-width: 1200px) {
+        .calendar-card {
+            height: auto;
+            min-height: auto;
+        }
+        
+        .calendar-day {
+            min-height: 120px;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .calendar-day {
+            min-height: 100px;
+            padding: 6px;
+        }
+
+        .day-number {
+            font-size: 0.9rem;
+        }
+
+        .staff-name {
+            font-size: 0.8rem;
+            padding: 4px 6px;
+        }
+
+        .edit-btn {
+            font-size: 0.75rem;
+            padding: 3px 6px;
+        }
+    }
+</style>
+
+@code {
+    private DateTime CurrentMonth { get; set; } = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private List<Models.Schedule> schedules = new List<Models.Schedule>();
+    private List<Models.Staff> staffList = new List<Models.Staff>();
+    private bool isLoading = true;
+    private DateTime? editingDate;
+    private int? selectedStaffId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStaffList();
+        await LoadSchedules();
+    }
+
+    private async Task LoadStaffList()
+    {
+        staffList = await DbContext.Staff.ToListAsync();
+    }
+
+    private async Task LoadSchedules()
+    {
+        isLoading = true;
+        
+        // 获取当前月份的第一天和最后一天
+        var firstDayOfMonth = new DateTime(CurrentMonth.Year, CurrentMonth.Month, 1);
+        var lastDayOfMonth = firstDayOfMonth.AddMonths(1).AddDays(-1);
+        
+        // 为了显示完整的日历，我们需要获取前后几天
+        var firstDayOfCalendar = firstDayOfMonth.AddDays(-(int)firstDayOfMonth.DayOfWeek);
+        var lastDayOfCalendar = lastDayOfMonth.AddDays(6 - (int)lastDayOfMonth.DayOfWeek);
+        
+        // 加载日期范围内的所有排班
+        schedules = await DbContext.Schedules
+            .Include(s => s.Staff)
+            .Where(s => s.Date >= firstDayOfCalendar && s.Date <= lastDayOfCalendar)
+            .ToListAsync();
+        
+        isLoading = false;
+    }
+
+    private void PreviousMonth()
+    {
+        CurrentMonth = CurrentMonth.AddMonths(-1);
+        LoadSchedules();
+    }
+
+    private void NextMonth()
+    {
+        CurrentMonth = CurrentMonth.AddMonths(1);
+        LoadSchedules();
+    }
+
+    private List<List<DateTime>> GetCalendarDays()
+    {
+        var result = new List<List<DateTime>>();
+        
+        // 获取当前月的第一天
+        var firstDayOfMonth = new DateTime(CurrentMonth.Year, CurrentMonth.Month, 1);
+        
+        // 获取当前月的最后一天
+        var lastDayOfMonth = firstDayOfMonth.AddMonths(1).AddDays(-1);
+        
+        // 获取日历第一行第一天 (上个月的某天)
+        var firstDayOfCalendar = firstDayOfMonth.AddDays(-(int)firstDayOfMonth.DayOfWeek);
+        
+        // 生成日历数据 (6周)
+        for (int week = 0; week < 6; week++)
+        {
+            var weekDays = new List<DateTime>();
+            
+            for (int day = 0; day < 7; day++)
+            {
+                var currentDate = firstDayOfCalendar.AddDays(week * 7 + day);
+                weekDays.Add(currentDate);
+            }
+            
+            result.Add(weekDays);
+            
+            // 如果已经超过了当前月的最后一天，并且是周六，就不再添加新的一周
+            if (weekDays[6] > lastDayOfMonth && weekDays[6].DayOfWeek == DayOfWeek.Saturday)
+                break;
+        }
+        
+        return result;
+    }
+
+    private void EditDay(DateTime date)
+    {
+        editingDate = date;
+        var schedule = schedules.FirstOrDefault(s => s.Date.Date == date.Date);
+        selectedStaffId = schedule?.StaffId;
+    }
+
+    private void CancelEdit()
+    {
+        editingDate = null;
+        selectedStaffId = null;
+    }
+
+    private async Task SaveSchedule()
+    {
+        if (!editingDate.HasValue)
+            return;
+            
+        var date = editingDate.Value;
+        var schedule = schedules.FirstOrDefault(s => s.Date.Date == date.Date);
+        
+        if (schedule == null)
+        {
+            // 如果没有找到排班记录，创建一个新的
+            schedule = new Models.Schedule
+            {
+                Date = date,
+                StaffId = selectedStaffId,
+                CreatedAt = DateTime.Now
+            };
+            
+            DbContext.Schedules.Add(schedule);
+        }
+        else
+        {
+            // 更新现有排班记录
+            schedule.StaffId = selectedStaffId;
+            schedule.UpdatedAt = DateTime.Now;
+            
+            DbContext.Schedules.Update(schedule);
+        }
+        
+        await DbContext.SaveChangesAsync();
+        
+        // 重新加载排班数据
+        await LoadSchedules();
+        
+        // 重置编辑状态
+        editingDate = null;
+        selectedStaffId = null;
+    }
+} 

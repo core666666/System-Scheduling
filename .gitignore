@@ -1,52 +1,43 @@
-# Prerequisites
-*.d
+# Visual Studio 临时文件
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
 
-# Object files
-*.o
-*.ko
-*.obj
-*.elf
+# 构建结果
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
 
-# Linker output
-*.ilk
-*.map
-*.exp
+# 测试结果
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
 
-# Precompiled Headers
-*.gch
-*.pch
+# NuGet 包
+*.nupkg
+# NuGet Symbol 包
+*.snupkg
+# 包文件夹
+**/packages/*
+# 除非你希望检入包恢复文件
+!**/packages/build/
 
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
+# MSTest 测试结果
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
 
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
+# 日志文件
+*.log
+logs/
 
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
-
-# Debug files
-*.dSYM/
-*.su
-*.idb
-*.pdb
-
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-.tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
+# 敏感信息文件
+*.pfx
+*.key
+appsettings.*.json

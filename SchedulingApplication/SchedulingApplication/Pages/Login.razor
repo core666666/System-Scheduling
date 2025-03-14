@@ -1,0 +1,163 @@
+@page "/login"
+@using SchedulingApplication.Models
+@using SchedulingApplication.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inject SchedulingApplication.Services.AuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ILogger<Login> Logger
+@inject AuthenticationStateProvider AuthStateProvider
+
+<div class="login-page">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-4">
+                <div class="text-center mb-4">
+                    <i class="fas fa-calendar-alt login-icon"></i>
+                    <h2>值日排班系统</h2>
+                    <p class="text-muted">请登录以继续</p>
+                </div>
+                <div class="card shadow">
+                    <div class="card-body p-4">
+                        <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+                            <DataAnnotationsValidator />
+                            <div class="mb-3">
+                                <label for="username" class="form-label">用户名</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                    <InputText id="username" class="form-control" placeholder="admin" @bind-Value="@loginModel.Username" disabled="@isLoggingIn" />
+                                </div>
+                                <ValidationMessage For="@(() => loginModel.Username)" />
+                            </div>
+                            <div class="mb-4">
+                                <label for="password" class="form-label">密码</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                    <InputText type="password" id="password" class="form-control" placeholder="admin123" @bind-Value="@loginModel.Password" disabled="@isLoggingIn" />
+                                </div>
+                                <ValidationMessage For="@(() => loginModel.Password)" />
+                            </div>
+                            @if (!string.IsNullOrEmpty(errorMessage))
+                            {
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    @errorMessage
+                                </div>
+                            }
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary py-2" disabled="@isLoggingIn">
+                                    @if (isLoggingIn)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                        <span>登录中...</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-sign-in-alt me-2"></i>
+                                        <span>登录</span>
+                                    }
+                                </button>
+                            </div>
+                        </EditForm>
+                    </div>
+                </div>
+                <div class="text-center mt-3 text-muted">
+                    <small>&copy; @DateTime.Now.Year 值日排班系统</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .login-page {
+        height: 100vh;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f8f9fa;
+    }
+    
+    .login-icon {
+        font-size: 3rem;
+        color: #3a0647;
+        margin-bottom: 1rem;
+    }
+    
+    .login-page .card {
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    
+    .login-page .btn-primary {
+        background-color: #3a0647;
+        border-color: #3a0647;
+    }
+    
+    .login-page .btn-primary:hover {
+        background-color: #4a0a57;
+        border-color: #4a0a57;
+    }
+    
+    .login-page .form-control:focus {
+        border-color: #3a0647;
+        box-shadow: 0 0 0 0.25rem rgba(58, 6, 71, 0.25);
+    }
+</style>
+
+@code {
+    private LoginModel loginModel = new LoginModel();
+    private string errorMessage;
+    private bool isLoggingIn = false;
+
+    private async Task HandleLogin()
+    {
+        try 
+        {
+            errorMessage = null;
+            isLoggingIn = true;
+            
+            Logger.LogInformation("正在尝试登录，用户名：{Username}", loginModel.Username);
+            
+            var result = await AuthService.ValidateUserAsync(loginModel.Username, loginModel.Password);
+            
+            if (result)
+            {
+                Logger.LogInformation("用户登录成功，准备导航到仪表板");
+                
+                // 获取当前登录用户
+                var authenticatedUser = AuthService.GetCurrentUser();
+                
+                // 如果有用户，主动更新认证状态
+                if (authenticatedUser?.Identity?.IsAuthenticated == true)
+                {
+                    // 通知认证状态变化
+                    if (AuthStateProvider is CustomAuthStateProvider customProvider)
+                    {
+                        customProvider.NotifyAuthenticationStateChanged(authenticatedUser);
+                        Logger.LogInformation("已通知认证状态变化");
+                    }
+                }
+                
+                // 在导航前设置一个延迟，确保认证状态已更新
+                await Task.Delay(300);
+                
+                // 导航到仪表板
+                NavigationManager.NavigateTo("/dashboard", false);
+            }
+            else
+            {
+                Logger.LogWarning("登录失败，用户名或密码错误：{Username}", loginModel.Username);
+                errorMessage = "用户名或密码错误";
+                isLoggingIn = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "登录过程中发生错误，用户名：{Username}", loginModel.Username);
+            errorMessage = $"登录过程中发生错误：{ex.Message}";
+            isLoggingIn = false;
+        }
+    }
+} 

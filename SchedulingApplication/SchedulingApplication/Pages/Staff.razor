@@ -1,0 +1,217 @@
+@page "/staff"
+@using SchedulingApplication.Data
+@using SchedulingApplication.Models
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+@attribute [Authorize]
+
+<h3>人员管理</h3>
+
+<div class="row mb-3">
+    <div class="col">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">添加新人员</h5>
+                <EditForm Model="@newStaff" OnValidSubmit="AddStaff">
+                    <DataAnnotationsValidator />
+                    <div class="row">
+                        <div class="col-md-5 mb-3">
+                            <label for="name" class="form-label">姓名</label>
+                            <InputText id="name" class="form-control" @bind-Value="newStaff.Name" />
+                            <ValidationMessage For="@(() => newStaff.Name)" />
+                        </div>
+                        <div class="col-md-5 mb-3">
+                            <label for="phoneNumber" class="form-label">手机号</label>
+                            <InputText id="phoneNumber" class="form-control" @bind-Value="newStaff.PhoneNumber" />
+                            <ValidationMessage For="@(() => newStaff.PhoneNumber)" />
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end mb-3">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="oi oi-plus me-1"></i> 添加
+                            </button>
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title mb-3">人员列表</h5>
+                
+                @if(isLoading)
+                {
+                    <div class="text-center my-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                        <p class="mt-2">加载数据中...</p>
+                    </div>
+                }
+                else if(staffList.Count == 0)
+                {
+                    <div class="alert alert-info">
+                        <i class="oi oi-info me-2"></i> 尚未添加任何人员。请使用上方表单添加人员。
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>姓名</th>
+                                    <th>手机号</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var staff in staffList)
+                                {
+                                    <tr>
+                                        <td>@staff.Id</td>
+                                        <td>
+                                            @if (editingStaffId == staff.Id)
+                                            {
+                                                <input type="text" class="form-control" @bind="staff.Name" />
+                                            }
+                                            else
+                                            {
+                                                @staff.Name
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (editingStaffId == staff.Id)
+                                            {
+                                                <input type="text" class="form-control" @bind="staff.PhoneNumber" />
+                                            }
+                                            else
+                                            {
+                                                @staff.PhoneNumber
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (editingStaffId == staff.Id)
+                                            {
+                                                <button class="btn btn-success btn-sm me-1" @onclick="() => SaveStaff(staff)">
+                                                    <i class="oi oi-check"></i> 保存
+                                                </button>
+                                                <button class="btn btn-secondary btn-sm" @onclick="CancelEdit">
+                                                    <i class="oi oi-x"></i> 取消
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-primary btn-sm me-1" @onclick="() => EditStaff(staff.Id)">
+                                                    <i class="oi oi-pencil"></i> 编辑
+                                                </button>
+                                                <button class="btn btn-danger btn-sm" @onclick="() => DeleteStaffPrompt(staff.Id)">
+                                                    <i class="oi oi-trash"></i> 删除
+                                                </button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (showDeleteConfirm)
+{
+    <div class="modal fade show" style="display: block; background-color: rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">确认删除</h5>
+                    <button type="button" class="btn-close" @onclick="() => showDeleteConfirm = false"></button>
+                </div>
+                <div class="modal-body">
+                    <p>您确定要删除这个人员吗？此操作不可撤销。</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="() => showDeleteConfirm = false">取消</button>
+                    <button type="button" class="btn btn-danger" @onclick="DeleteStaff">确认删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Models.Staff> staffList = new List<Models.Staff>();
+    private Models.Staff newStaff = new Models.Staff();
+    private bool isLoading = true;
+    private int? editingStaffId;
+    private int? deleteStaffId;
+    private bool showDeleteConfirm = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStaffList();
+    }
+
+    private async Task LoadStaffList()
+    {
+        isLoading = true;
+        staffList = await DbContext.Staff.ToListAsync();
+        isLoading = false;
+    }
+
+    private async Task AddStaff()
+    {
+        DbContext.Staff.Add(newStaff);
+        await DbContext.SaveChangesAsync();
+        newStaff = new Models.Staff(); // 重置表单
+        await LoadStaffList();
+    }
+
+    private void EditStaff(int id)
+    {
+        editingStaffId = id;
+    }
+
+    private async Task SaveStaff(Models.Staff staff)
+    {
+        DbContext.Staff.Update(staff);
+        await DbContext.SaveChangesAsync();
+        editingStaffId = null;
+    }
+
+    private void CancelEdit()
+    {
+        editingStaffId = null;
+        LoadStaffList(); // 重新加载数据以取消更改
+    }
+
+    private void DeleteStaffPrompt(int id)
+    {
+        deleteStaffId = id;
+        showDeleteConfirm = true;
+    }
+
+    private async Task DeleteStaff()
+    {
+        if (deleteStaffId.HasValue)
+        {
+            var staff = await DbContext.Staff.FindAsync(deleteStaffId.Value);
+            if (staff != null)
+            {
+                DbContext.Staff.Remove(staff);
+                await DbContext.SaveChangesAsync();
+            }
+        }
+        showDeleteConfirm = false;
+        deleteStaffId = null;
+        await LoadStaffList();
+    }
+} 
