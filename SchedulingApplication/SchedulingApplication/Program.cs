@@ -11,6 +11,9 @@ using SchedulingApplication.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// 设置开发环境
+builder.Environment.EnvironmentName = "Development";
+
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
