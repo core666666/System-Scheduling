@@ -76,9 +76,6 @@ builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>
 // 注册JSInterop服务
 builder.Services.AddScoped<AppJsInterop>();
 
-// 不再需要重复注册 AuthService
-// builder.Services.AddScoped<AuthService>();
-
 // 添加钉钉服务
 builder.Services.Configure<DingTalkSettings>(
     builder.Configuration.GetSection("DingTalk"));
