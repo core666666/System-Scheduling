@@ -157,12 +157,13 @@ using (var scope = app.Services.CreateScope())
                                 Password TEXT NOT NULL,
                                 LastLoginTime TEXT NULL,
                                 IsAdmin INTEGER NOT NULL DEFAULT 0,
+                                IsActive INTEGER NOT NULL DEFAULT 1,
                                 CreatedAt TEXT DEFAULT CURRENT_TIMESTAMP
                             );
                             
                             -- 检查是否存在默认管理员账户
-                            INSERT INTO Users (Id, Username, Password, IsAdmin, CreatedAt)
-                            SELECT 1, 'admin', 'admin123', 1, datetime('now')
+                            INSERT INTO Users (Id, Username, Password, IsAdmin, IsActive, CreatedAt)
+                            SELECT 1, 'admin', 'admin123', 1, 1, datetime('now')
                             WHERE NOT EXISTS (SELECT 1 FROM Users WHERE Id = 1);
                             
                             -- 检查是否需要为现有用户添加新列
@@ -171,88 +172,49 @@ using (var scope = app.Services.CreateScope())
                         using (var reader = command.ExecuteReader())
                         {
                             bool hasCreatedAt = false;
+                            bool hasIsActive = false;
                             
-                            // 检查Users表是否已经有CreatedAt列
+                            // 检查Users表是否已经有CreatedAt和IsActive列
                             while (reader.Read())
                             {
                                 string columnName = reader.GetString(1); // 列名是第二列
                                 if (columnName.Equals("CreatedAt", StringComparison.OrdinalIgnoreCase))
                                 {
                                     hasCreatedAt = true;
-                                    break;
+                                }
+                                else if (columnName.Equals("IsActive", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    hasIsActive = true;
                                 }
                             }
                             
-                            // 如果没有CreatedAt列，添加它
-                            if (!hasCreatedAt)
+                            // 需要关闭当前读取器
+                            reader.Close();
+                            
+                            // 如果没有IsActive列，添加它
+                            if (!hasIsActive)
                             {
-                                logger.LogInformation("Users表中缺少CreatedAt列，正在添加...");
-                                
-                                // 需要关闭当前读取器
-                                reader.Close();
-                                
+                                logger.LogInformation("Users表中缺少IsActive列，正在添加...");
                                 try
                                 {
                                     // 执行ALTER TABLE添加列
                                     command.CommandText = @"
                                         ALTER TABLE Users 
-                                        ADD COLUMN CreatedAt TEXT DEFAULT CURRENT_TIMESTAMP;";
+                                        ADD COLUMN IsActive INTEGER NOT NULL DEFAULT 1;";
                                     command.ExecuteNonQuery();
                                     
                                     // 更新现有记录
                                     command.CommandText = @"
                                         UPDATE Users 
-                                        SET CreatedAt = datetime('now')
-                                        WHERE CreatedAt IS NULL;";
+                                        SET IsActive = 1
+                                        WHERE IsActive IS NULL;";
                                     command.ExecuteNonQuery();
                                     
-                                    logger.LogInformation("成功添加CreatedAt列并更新现有记录");
+                                    logger.LogInformation("成功添加IsActive列并更新现有记录");
                                 }
                                 catch (Exception exCol)
                                 {
-                                    logger.LogError(exCol, "添加CreatedAt列时出错，将尝试重建Users表");
-                                    
-                                    try
-                                    {
-                                        // 重新创建表的更激进方法
-                                        // 1. 创建临时表
-                                        command.CommandText = @"
-                                            CREATE TABLE Users_Temp (
-                                                Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                                Username TEXT NOT NULL,
-                                                Password TEXT NOT NULL,
-                                                LastLoginTime TEXT NULL,
-                                                IsAdmin INTEGER NOT NULL DEFAULT 0,
-                                                CreatedAt TEXT DEFAULT CURRENT_TIMESTAMP
-                                            );";
-                                        command.ExecuteNonQuery();
-                                        
-                                        // 2. 复制数据
-                                        command.CommandText = @"
-                                            INSERT INTO Users_Temp (Id, Username, Password, LastLoginTime, IsAdmin)
-                                            SELECT Id, Username, Password, LastLoginTime, IsAdmin FROM Users;";
-                                        command.ExecuteNonQuery();
-                                        
-                                        // 3. 更新CreatedAt
-                                        command.CommandText = @"
-                                            UPDATE Users_Temp 
-                                            SET CreatedAt = datetime('now');";
-                                        command.ExecuteNonQuery();
-                                        
-                                        // 4. 删除旧表
-                                        command.CommandText = "DROP TABLE Users;";
-                                        command.ExecuteNonQuery();
-                                        
-                                        // 5. 重命名新表
-                                        command.CommandText = "ALTER TABLE Users_Temp RENAME TO Users;";
-                                        command.ExecuteNonQuery();
-                                        
-                                        logger.LogInformation("成功重建Users表，包含CreatedAt列");
-                                    }
-                                    catch (Exception exRebuild)
-                                    {
-                                        logger.LogError(exRebuild, "重建Users表失败，应用可能无法正常工作");
-                                    }
+                                    logger.LogError(exCol, "添加IsActive列时出错");
                                 }
                             }
                         }

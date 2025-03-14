@@ -150,6 +150,13 @@ namespace SchedulingApplication.Services
                     return false;
                 }
 
+                // 检查用户状态
+                if (!user.IsActive)
+                {
+                    _logger.LogWarning("登录失败：用户已被禁用 - {Username}", username);
+                    return false;
+                }
+
                 // 更新最后登录时间
                 user.LastLoginTime = DateTime.Now;
                 await _context.SaveChangesAsync();
