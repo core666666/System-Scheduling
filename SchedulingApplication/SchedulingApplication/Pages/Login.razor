@@ -11,10 +11,16 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-md-6 col-lg-4">
-                <div class="text-center mb-4">
-                    <i class="fas fa-calendar-alt login-icon"></i>
-                    <h2>值日排班系统</h2>
-                    <p class="text-muted">请登录以继续</p>
+                <div class="text-center mb-4 login-header">
+                    <div class="header-flex">
+                        <div class="logo-container">
+                            <i class="fas fa-calendar-check login-icon"></i>
+                            <div class="icon-glow"></div>
+                        </div>
+                        <h2 class="system-title">值日排班系统</h2>
+                    </div>
+                    <div class="title-underline"></div>
+                    <p class="text-muted login-subtitle">高效管理 · 智能排班 · 便捷协作</p>
                 </div>
                 <div class="card shadow">
                     <div class="card-body p-4">
@@ -100,10 +106,92 @@
         z-index: 2;
     }
     
+    /* 标题区域优化样式 */
+    .login-header {
+        margin-bottom: 2rem !important;
+    }
+    
+    .header-flex {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0.5rem;
+    }
+    
+    .logo-container {
+        position: relative;
+        background: linear-gradient(145deg, rgba(255,255,255,0.3), rgba(255,255,255,0.1));
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+    
+    .icon-glow {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%);
+        opacity: 0.5;
+        mix-blend-mode: overlay;
+        animation: pulse 3s infinite;
+    }
+    
+    @@keyframes pulse {
+        0% { transform: scale(0.8); opacity: 0.3; }
+        50% { transform: scale(1.2); opacity: 0.6; }
+        100% { transform: scale(0.8); opacity: 0.3; }
+    }
+    
+    .logo-container:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0 30px rgba(255, 255, 255, 0.7);
+    }
+    
+    .logo-container:hover .icon-glow {
+        opacity: 0.7;
+    }
+    
     .login-icon {
-        font-size: 3rem;
+        font-size: 2.5rem;
         color: #fff;
-        margin-bottom: 1rem;
+        text-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+        z-index: 2;
+        background: linear-gradient(to bottom, #ffffff, #e0e0e0);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .system-title {
+        font-size: 2.3rem;
+        font-weight: 700;
+        margin-bottom: 0;
+        color: #fff;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        letter-spacing: 1px;
+    }
+    
+    .title-underline {
+        width: 80px;
+        height: 3px;
+        background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 50%, rgba(255,255,255,0) 100%);
+        margin: 0.5rem auto 1rem auto;
+    }
+    
+    .login-subtitle {
+        font-size: 1.1rem;
+        color: rgba(255, 255, 255, 0.9) !important;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+        letter-spacing: 1px;
     }
     
     .login-page h2, 
