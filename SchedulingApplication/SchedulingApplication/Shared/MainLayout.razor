@@ -19,10 +19,13 @@
                 <div class="top-row px-4">
                     <div class="ms-auto d-flex align-items-center">
                         <div class="user-info me-3">
-                            <i class="fas fa-user-circle me-1"></i>
+                            <i class="fas fa-user-circle me-2"></i>
                             <span>@authContext.User?.Identity?.Name</span>
                         </div>
-                        <button class="btn btn-link" @onclick="HandleLogout">退出登录</button>
+                        <button class="btn btn-logout" @onclick="HandleLogout">
+                            <i class="fas fa-sign-out-alt me-1"></i>
+                            退出登录
+                        </button>
                     </div>
                 </div>
 
@@ -47,20 +50,66 @@
 </AuthorizeView>
 
 <style>
+    /* 顶部导航栏样式优化 */
+    main .top-row {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        padding: 0.75rem 1.5rem;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
     .user-info {
         display: flex;
         align-items: center;
         font-size: 0.9rem;
-        color: #555;
-        padding: 0.25rem 0.75rem;
-        background-color: #f8f9fa;
-        border-radius: 20px;
-        border: 1px solid #dee2e6;
+        color: #333;
+        padding: 0.4rem 0.9rem;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 25px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .user-info:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
     }
     
     .user-info i {
         color: #3a0647;
-        font-size: 1.1rem;
+        font-size: 1.2rem;
+    }
+    
+    .btn-logout {
+        color: #fff;
+        background: linear-gradient(135deg, #05275c 0%, #3a0647 100%);
+        border: none;
+        border-radius: 25px;
+        padding: 0.4rem 1rem;
+        font-size: 0.9rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .btn-logout:hover {
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        transform: translateY(-2px);
+        background: linear-gradient(135deg, #05275c 20%, #3a0647 80%);
+        color: #fff;
+    }
+    
+    article.content {
+        padding-top: 1.5rem;
+        background-color: #f9f9fb;
     }
 </style>
 

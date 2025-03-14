@@ -11,7 +11,12 @@
         }
         <div class="top-row ps-3 navbar navbar-dark">
             <div class="container-fluid">
-                <a class="navbar-brand" href="dashboard">值日排班系统</a>
+                <a class="navbar-brand" href="dashboard">
+                    <div class="brand-container">
+                        <i class="fas fa-calendar-check brand-icon"></i>
+                        <span class="brand-text">值日排班系统</span>
+                    </div>
+                </a>
                 <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -22,22 +27,22 @@
             <nav class="flex-column">
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="dashboard" Match="NavLinkMatch.All">
-                        <span class="bi bi-house-door" aria-hidden="true"></span> 仪表板
+                        <i class="fas fa-tachometer-alt me-2" aria-hidden="true"></i> 仪表板
                     </NavLink>
                 </div>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="staff">
-                        <span class="bi bi-people" aria-hidden="true"></span> 人员管理
+                        <i class="fas fa-users me-2" aria-hidden="true"></i> 人员管理
                     </NavLink>
                 </div>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="schedule">
-                        <span class="bi bi-calendar3" aria-hidden="true"></span> 排班管理
+                        <i class="fas fa-calendar-alt me-2" aria-hidden="true"></i> 排班管理
                     </NavLink>
                 </div>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="notifications">
-                        <span class="bi bi-bell" aria-hidden="true"></span> 通知设置
+                        <i class="fas fa-bell me-2" aria-hidden="true"></i> 通知设置
                     </NavLink>
                 </div>
             </nav>
@@ -107,4 +112,99 @@
         collapseNavMenu = !collapseNavMenu;
         StateHasChanged();
     }
-} 
+}
+
+<style>
+    /* 菜单样式优化 */
+    .top-row {
+        background: linear-gradient(135deg, #05275c 0%, #3a0647 100%);
+        border-bottom: none;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .brand-container {
+        display: flex;
+        align-items: center;
+    }
+    
+    .brand-icon {
+        font-size: 1.5rem;
+        color: #fff;
+        margin-right: 0.5rem;
+        background: linear-gradient(to bottom, #ffffff, #e0e0e0);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    }
+    
+    .brand-text {
+        font-weight: 600;
+        font-size: 1.2rem;
+        letter-spacing: 0.5px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    
+    .navbar-brand {
+        transition: all 0.3s ease;
+    }
+    
+    .navbar-brand:hover {
+        transform: translateY(-2px);
+    }
+    
+    .nav-scrollable {
+        background: linear-gradient(180deg, #05275c 0%, #3a0647 100%);
+        box-shadow: inset -4px 0 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .nav-item {
+        margin-bottom: 0.25rem;
+    }
+    
+    .nav-link {
+        border-radius: 6px;
+        margin: 0 0.5rem;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+        font-size: 1rem;
+        font-weight: 500;
+        letter-spacing: 0.3px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .nav-link i {
+        font-size: 1.1rem;
+        width: 1.5rem;
+        text-align: center;
+    }
+    
+    .nav-link:hover {
+        background: rgba(255, 255, 255, 0.15);
+        transform: translateX(3px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .nav-link.active {
+        background: rgba(255, 255, 255, 0.2);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        border-left: 3px solid #fff;
+    }
+    
+    .navbar-toggler {
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+        border-radius: 6px;
+        padding: 0.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .navbar-toggler:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: scale(1.05);
+    }
+</style> 
