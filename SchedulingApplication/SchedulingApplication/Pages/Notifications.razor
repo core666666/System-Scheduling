@@ -2,7 +2,11 @@
 @using SchedulingApplication.Data
 @using SchedulingApplication.Models
 @using Microsoft.EntityFrameworkCore
+@using SchedulingApplication.Services
+@using Microsoft.Extensions.Logging
 @inject ApplicationDbContext DbContext
+@inject IDingTalkService DingTalkService
+@inject ILogger<Notifications> _logger
 @attribute [Authorize]
 
 <h3>通知配置</h3>
@@ -249,7 +253,7 @@
                 return;
             }
             
-            // 模拟发送通知
+            // 构建通知内容
             var template = notificationConfig.NotificationTemplate;
             var tomorrow = DateTime.Today.AddDays(1);
             var dayOfWeek = GetChineseDayOfWeek(tomorrow.DayOfWeek);
@@ -259,8 +263,8 @@
                 .Replace("{Date}", tomorrow.ToString("yyyy-MM-dd"))
                 .Replace("{DayOfWeek}", dayOfWeek);
             
-            // 在实际应用中，这里会调用钉钉服务发送通知
-            // await DingTalkService.SendNotificationAsync(staff.PhoneNumber, content);
+            // 发送钉钉通知
+            await DingTalkService.SendNotificationAsync(staff.PhoneNumber, content);
             
             message = $"已成功发送测试通知到 {staff.Name} ({staff.PhoneNumber})";
             isError = false;
@@ -269,6 +273,7 @@
         {
             message = $"发送测试通知失败: {ex.Message}";
             isError = true;
+            _logger.LogError(ex, "发送测试通知失败");
         }
     }
 
