@@ -18,14 +18,24 @@
             <main>
                 <div class="top-row px-4">
                     <div class="ms-auto d-flex align-items-center">
-                        <div class="user-info me-3">
-                            <i class="fas fa-user-circle me-2"></i>
-                            <span>@authContext.User?.Identity?.Name</span>
+                        <div class="user-menu">
+                            <div class="user-dropdown" @onclick="ToggleUserMenu" @onclick:stopPropagation>
+                                <i class="fas fa-user-circle me-2"></i>
+                                <span>@authContext.User.Identity?.Name</span>
+                                <i class="fas fa-chevron-down ms-2"></i>
+                            </div>
+                            @if (showUserMenu)
+                            {
+                                <div class="user-dropdown-menu" @onclick:stopPropagation>
+                                    <div class="dropdown-item" @onclick="ShowChangePasswordModal">
+                                        <i class="fas fa-key me-2"></i> 修改密码
+                                    </div>
+                                    <div class="dropdown-item" @onclick="HandleLogout">
+                                        <i class="fas fa-sign-out-alt me-2"></i> 退出登录
+                                    </div>
+                                </div>
+                            }
                         </div>
-                        <button class="btn btn-logout" @onclick="HandleLogout">
-                            <i class="fas fa-sign-out-alt me-1"></i>
-                            退出登录
-                        </button>
                     </div>
                 </div>
 
@@ -59,6 +69,60 @@
     </NotAuthorized>
 </AuthorizeView>
 
+@if (showChangePasswordModal)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show" style="display: block;" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">修改密码</h5>
+                    <button type="button" class="btn-close" @onclick="CloseChangePasswordModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">当前密码</label>
+                        <input type="password" class="form-control" @bind="currentPassword" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">新密码</label>
+                        <input type="password" class="form-control" @bind="newPassword" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">确认新密码</label>
+                        <input type="password" class="form-control" @bind="confirmPassword" />
+                    </div>
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">
+                            @errorMessage
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseChangePasswordModal">取消</button>
+                    <button type="button" class="btn btn-primary" @onclick="ChangePassword">确认修改</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showSuccessMessage)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show" style="display: block;" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center p-4">
+                    <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+                    <h5 class="mt-3">@successMessage</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 <style>
     /* 顶部导航栏样式优化 */
     main .top-row {
@@ -73,7 +137,11 @@
         z-index: 10;
     }
     
-    .user-info {
+    .user-menu {
+        position: relative;
+    }
+    
+    .user-dropdown {
         display: flex;
         align-items: center;
         font-size: 0.9rem;
@@ -84,37 +152,48 @@
         border: 1px solid rgba(0, 0, 0, 0.08);
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
         transition: all 0.3s ease;
+        cursor: pointer;
     }
     
-    .user-info:hover {
+    .user-dropdown:hover {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         transform: translateY(-2px);
     }
     
-    .user-info i {
+    .user-dropdown i {
         color: #3a0647;
         font-size: 1.2rem;
     }
     
-    .btn-logout {
-        color: #fff;
-        background: linear-gradient(135deg, #05275c 0%, #3a0647 100%);
-        border: none;
-        border-radius: 25px;
-        padding: 0.4rem 1rem;
-        font-size: 0.9rem;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s ease;
+    .user-dropdown-menu {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        margin-top: 0.5rem;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        min-width: 200px;
+        z-index: 1000;
     }
     
-    .btn-logout:hover {
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-        transform: translateY(-2px);
-        background: linear-gradient(135deg, #05275c 20%, #3a0647 80%);
-        color: #fff;
+    .dropdown-item {
+        padding: 0.75rem 1rem;
+        display: flex;
+        align-items: center;
+        color: #333;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .dropdown-item:hover {
+        background: rgba(58, 6, 71, 0.05);
+        color: #3a0647;
+    }
+    
+    .dropdown-item i {
+        color: #3a0647;
+        margin-right: 0.5rem;
     }
     
     article.content {
@@ -159,6 +238,15 @@
 </style>
 
 @code {
+    private bool showUserMenu = false;
+    private bool showChangePasswordModal = false;
+    private bool showSuccessMessage = false;
+    private string currentPassword = "";
+    private string newPassword = "";
+    private string confirmPassword = "";
+    private string errorMessage = "";
+    private string successMessage = "";
+
     protected override void OnInitialized()
     {
         Logger.LogInformation($"MainLayout OnInitialized - Route: {NavigationManager.Uri}");
@@ -210,5 +298,78 @@
         Logger.LogInformation("MainLayout HandleLogout - Starting logout process");
         await AuthService.LogoutAsync();
         NavigationManager.NavigateTo("/login");
+    }
+
+    private void ToggleUserMenu()
+    {
+        showUserMenu = !showUserMenu;
+    }
+
+    private void ShowChangePasswordModal()
+    {
+        showChangePasswordModal = true;
+        showUserMenu = false;
+        currentPassword = "";
+        newPassword = "";
+        confirmPassword = "";
+        errorMessage = "";
+    }
+
+    private void CloseChangePasswordModal()
+    {
+        showChangePasswordModal = false;
+        currentPassword = "";
+        newPassword = "";
+        confirmPassword = "";
+        errorMessage = "";
+    }
+
+    private async Task ChangePassword()
+    {
+        if (string.IsNullOrEmpty(currentPassword) || string.IsNullOrEmpty(newPassword) || string.IsNullOrEmpty(confirmPassword))
+        {
+            errorMessage = "请填写所有密码字段";
+            return;
+        }
+
+        if (newPassword != confirmPassword)
+        {
+            errorMessage = "新密码与确认密码不匹配";
+            return;
+        }
+
+        if (newPassword.Length < 6)
+        {
+            errorMessage = "新密码长度不能少于6个字符";
+            return;
+        }
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var username = authState.User.Identity?.Name;
+
+        if (string.IsNullOrEmpty(username))
+        {
+            errorMessage = "无法获取当前用户信息";
+            return;
+        }
+
+        var result = await AuthService.ChangePasswordAsync(username, currentPassword, newPassword);
+
+        if (result)
+        {
+            showChangePasswordModal = false;
+            showSuccessMessage = true;
+            successMessage = "密码修改成功，正在跳转到登录页...";
+            StateHasChanged();
+            
+            // 1秒后跳转到登录页
+            await Task.Delay(1000);
+            await AuthService.LogoutAsync();
+            NavigationManager.NavigateTo("/login");
+        }
+        else
+        {
+            errorMessage = "当前密码错误或修改密码失败";
+        }
     }
 } 

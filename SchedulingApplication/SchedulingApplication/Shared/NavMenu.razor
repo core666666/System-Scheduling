@@ -3,6 +3,7 @@
 @inject NavigationManager NavigationManager
 @inject ILogger<NavMenu> Logger
 @inject AuthenticationStateProvider AuthStateProvider
+@inject SchedulingApplication.Services.AuthService AuthService
 
 <AuthorizeView>
     <Authorized Context="authContext">
@@ -35,6 +36,15 @@
                         <i class="fas fa-users me-2" aria-hidden="true"></i> 人员管理
                     </NavLink>
                 </div>
+                <AuthorizeView Roles="Admin">
+                    <Authorized>
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="users">
+                                <i class="fas fa-user-cog me-2" aria-hidden="true"></i> 用户管理
+                            </NavLink>
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="schedule">
                         <i class="fas fa-calendar-alt me-2" aria-hidden="true"></i> 排班管理
@@ -55,8 +65,53 @@
     </NotAuthorized>
 </AuthorizeView>
 
+@*@if (showChangePasswordModal)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show" style="display: block;" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">修改密码1</h5>
+                    <button type="button" class="btn-close" @onclick="CloseChangePasswordModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">当前密码1</label>
+                        <input type="password" class="form-control" @bind="currentPassword" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">新密码1</label>
+                        <input type="password" class="form-control" @bind="newPassword" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">确认新密码</label>
+                        <input type="password" class="form-control" @bind="confirmPassword" />
+                    </div>
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">
+                            @errorMessage
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseChangePasswordModal">取消</button>
+                    <button type="button" class="btn btn-primary" @onclick="ChangePassword">确认修改</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}*@
+
 @code {
     private bool collapseNavMenu = false;
+    private bool showUserMenu = false;
+    private bool showChangePasswordModal = false;
+    private string currentPassword = "";
+    private string newPassword = "";
+    private string confirmPassword = "";
+    private string errorMessage = "";
 
     private string NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
@@ -112,6 +167,78 @@
         collapseNavMenu = !collapseNavMenu;
         StateHasChanged();
     }
+
+    private void ToggleUserMenu()
+    {
+        showUserMenu = !showUserMenu;
+    }
+
+    //private void ShowChangePasswordModal()
+    //{
+    //    showChangePasswordModal = true;
+    //    showUserMenu = false;
+    //    currentPassword = "";
+    //    newPassword = "";
+    //    confirmPassword = "";
+    //    errorMessage = "";
+    //}
+
+    //private void CloseChangePasswordModal()
+    //{
+    //    showChangePasswordModal = false;
+    //    currentPassword = "";
+    //    newPassword = "";
+    //    confirmPassword = "";
+    //    errorMessage = "";
+    //}
+
+    //private async Task ChangePassword()
+    //{
+    //    if (string.IsNullOrEmpty(currentPassword) || string.IsNullOrEmpty(newPassword) || string.IsNullOrEmpty(confirmPassword))
+    //    {
+    //        errorMessage = "请填写所有密码字段";
+    //        return;
+    //    }
+
+    //    if (newPassword != confirmPassword)
+    //    {
+    //        errorMessage = "新密码与确认密码不匹配";
+    //        return;
+    //    }
+
+    //    if (newPassword.Length < 6)
+    //    {
+    //        errorMessage = "新密码长度不能少于6个字符";
+    //        return;
+    //    }
+
+    //    var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+    //    var username = authState.User.Identity?.Name;
+        
+    //    if (string.IsNullOrEmpty(username))
+    //    {
+    //        errorMessage = "无法获取当前用户信息";
+    //        return;
+    //    }
+
+    //    var result = await AuthService.ChangePasswordAsync(username, currentPassword, newPassword);
+        
+    //    if (result)
+    //    {
+    //        CloseChangePasswordModal();
+    //        // 可以添加一个成功提示
+    //    }
+    //    else
+    //    {
+    //        errorMessage = "当前密码错误或修改密码失败";
+    //    }
+    //}
+
+    //private async Task HandleLogout()
+    //{
+    //    await AuthService.LogoutAsync();
+    //    NavigationManager.NavigateTo("/login", true);
+    //}
 }
 
 <style>
@@ -206,5 +333,75 @@
     .navbar-toggler:hover {
         background: rgba(255, 255, 255, 0.3);
         transform: scale(1.05);
+    }
+
+    /* 用户菜单样式 */
+    .user-menu {
+        position: relative;
+        margin-right: 1rem;
+        z-index: 1000;
+    }
+    
+    .user-dropdown {
+        color: white;
+        cursor: pointer;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .user-dropdown:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+    
+    .user-dropdown-menu {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        margin-top: 0.5rem;
+        background: white;
+        border-radius: 4px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        min-width: 200px;
+        z-index: 1001;
+    }
+    
+    .dropdown-item {
+        padding: 0.75rem 1rem;
+        color: #333;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+    }
+    
+    .dropdown-item:hover {
+        background: #f8f9fa;
+        color: #2b5797;
+    }
+
+    /* 模态框样式 */
+    .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1050;
+    }
+
+    .modal {
+        z-index: 1055;
+    }
+
+    .modal-dialog-centered {
+        display: flex;
+        align-items: center;
+        min-height: calc(100% - 1rem);
+        justify-content: center;
     }
 </style> 

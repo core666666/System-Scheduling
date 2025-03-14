@@ -1,0 +1,180 @@
+@page "/users"
+@attribute [Authorize(Roles = "Admin")]
+@using SchedulingApplication.Data
+@using SchedulingApplication.Models
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+@inject ILogger<Users> Logger
+
+<h3>用户管理</h3>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">添加新用户</h5>
+                <EditForm Model="@newUser" OnValidSubmit="AddUser">
+                    <DataAnnotationsValidator />
+                    <div class="mb-3">
+                        <label for="username" class="form-label">用户名</label>
+                        <InputText id="username" class="form-control" @bind-Value="newUser.Username" />
+                        <ValidationMessage For="@(() => newUser.Username)" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">密码</label>
+                        <InputText type="password" id="password" class="form-control" @bind-Value="newUser.Password" />
+                        <ValidationMessage For="@(() => newUser.Password)" />
+                    </div>
+                    <button type="submit" class="btn btn-primary">添加用户</button>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title mb-3">用户列表</h5>
+                
+                @if(isLoading)
+                {
+                    <div class="text-center my-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                        <p class="mt-2">加载数据中...</p>
+                    </div>
+                }
+                else if(userList.Count == 0)
+                {
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> 尚未添加任何普通用户。
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>用户名</th>
+                                    <th>创建时间</th>
+                                    <th>最后登录时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var user in userList)
+                                {
+                                    <tr>
+                                        <td>@user.Username</td>
+                                        <td>@user.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                        <td>@(user.LastLoginTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? "从未登录")</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-danger" @onclick="() => ConfirmDelete(user.Id)">
+                                                <i class="fas fa-trash-alt"></i> 删除
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (showDeleteConfirm)
+{
+    <div class="modal fade show" style="display: block; background-color: rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">确认删除</h5>
+                    <button type="button" class="btn-close" @onclick="() => showDeleteConfirm = false"></button>
+                </div>
+                <div class="modal-body">
+                    <p>您确定要删除这个用户吗？此操作不可撤销。</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="() => showDeleteConfirm = false">取消</button>
+                    <button type="button" class="btn btn-danger" @onclick="DeleteUser">确认删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<User> userList = new List<User>();
+    private User newUser = new User();
+    private bool isLoading = true;
+    private int? deleteUserId;
+    private bool showDeleteConfirm = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUserList();
+    }
+
+    private async Task LoadUserList()
+    {
+        isLoading = true;
+        // 只获取非管理员用户
+        userList = await DbContext.Users.Where(u => !u.IsAdmin).ToListAsync();
+        isLoading = false;
+    }
+
+    private async Task AddUser()
+    {
+        try
+        {
+            newUser.CreatedAt = DateTime.Now;
+            newUser.IsAdmin = false;
+            DbContext.Users.Add(newUser);
+            await DbContext.SaveChangesAsync();
+            newUser = new User(); // 重置表单
+            await LoadUserList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"添加用户时出错: {ex.Message}");
+        }
+    }
+
+    private void ConfirmDelete(int id)
+    {
+        deleteUserId = id;
+        showDeleteConfirm = true;
+    }
+
+    private async Task DeleteUser()
+    {
+        try
+        {
+            if (deleteUserId.HasValue)
+            {
+                var user = await DbContext.Users.FindAsync(deleteUserId.Value);
+                if (user != null)
+                {
+                    DbContext.Users.Remove(user);
+                    await DbContext.SaveChangesAsync();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"删除用户时出错: {ex.Message}");
+        }
+        finally
+        {
+            showDeleteConfirm = false;
+            deleteUserId = null;
+            await LoadUserList();
+        }
+    }
+} 

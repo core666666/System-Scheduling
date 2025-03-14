@@ -26,7 +26,9 @@ namespace SchedulingApplication.Data
                     Id = 1,
                     Username = "admin",
                     Password = "admin123", // 在实际项目中应该使用加密密码
-                    CreatedAt = DateTime.Now
+                    CreatedAt = DateTime.Now,
+                    IsAdmin = true,
+                    LastLoginTime = null
                 }
             );
 

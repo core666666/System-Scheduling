@@ -155,16 +155,17 @@ using (var scope = app.Services.CreateScope())
                                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                                 Username TEXT NOT NULL,
                                 Password TEXT NOT NULL,
-                                LastLogin TEXT NULL,
+                                LastLoginTime TEXT NULL,
+                                IsAdmin INTEGER NOT NULL DEFAULT 0,
                                 CreatedAt TEXT DEFAULT CURRENT_TIMESTAMP
                             );
                             
                             -- 检查是否存在默认管理员账户
-                            INSERT INTO Users (Id, Username, Password, CreatedAt)
-                            SELECT 1, 'admin', 'admin123', datetime('now')
+                            INSERT INTO Users (Id, Username, Password, IsAdmin, CreatedAt)
+                            SELECT 1, 'admin', 'admin123', 1, datetime('now')
                             WHERE NOT EXISTS (SELECT 1 FROM Users WHERE Id = 1);
                             
-                            -- 检查是否需要为现有用户添加CreatedAt列
+                            -- 检查是否需要为现有用户添加新列
                             PRAGMA table_info(Users);";
                         
                         using (var reader = command.ExecuteReader())
@@ -220,15 +221,16 @@ using (var scope = app.Services.CreateScope())
                                                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                                                 Username TEXT NOT NULL,
                                                 Password TEXT NOT NULL,
-                                                LastLogin TEXT NULL,
+                                                LastLoginTime TEXT NULL,
+                                                IsAdmin INTEGER NOT NULL DEFAULT 0,
                                                 CreatedAt TEXT DEFAULT CURRENT_TIMESTAMP
                                             );";
                                         command.ExecuteNonQuery();
                                         
                                         // 2. 复制数据
                                         command.CommandText = @"
-                                            INSERT INTO Users_Temp (Id, Username, Password, LastLogin)
-                                            SELECT Id, Username, Password, LastLogin FROM Users;";
+                                            INSERT INTO Users_Temp (Id, Username, Password, LastLoginTime, IsAdmin)
+                                            SELECT Id, Username, Password, LastLoginTime, IsAdmin FROM Users;";
                                         command.ExecuteNonQuery();
                                         
                                         // 3. 更新CreatedAt

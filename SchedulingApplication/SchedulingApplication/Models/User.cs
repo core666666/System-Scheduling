@@ -16,5 +16,9 @@ namespace SchedulingApplication.Models
         public string Password { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+        
+        public DateTime? LastLoginTime { get; set; }
+        
+        public bool IsAdmin { get; set; }
     }
 } 

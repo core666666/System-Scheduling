@@ -150,12 +150,16 @@ namespace SchedulingApplication.Services
                     return false;
                 }
 
+                // 更新最后登录时间
+                user.LastLoginTime = DateTime.Now;
+                await _context.SaveChangesAsync();
+
                 _logger.LogInformation("用户验证成功，正在创建身份认证票据...");
                 var claims = new List<Claim>
                 {
                     new Claim(ClaimTypes.Name, username),
                     new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                    new Claim(ClaimTypes.Role, "User")
+                    new Claim(ClaimTypes.Role, user.IsAdmin ? "Admin" : "User")
                 };
 
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -240,6 +244,35 @@ namespace SchedulingApplication.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "注销过程中发生错误");
+            }
+        }
+
+        public async Task<bool> ChangePasswordAsync(string username, string currentPassword, string newPassword)
+        {
+            try
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+                if (user == null)
+                {
+                    _logger.LogWarning("修改密码失败：用户不存在 - {Username}", username);
+                    return false;
+                }
+
+                if (user.Password != currentPassword)
+                {
+                    _logger.LogWarning("修改密码失败：当前密码错误 - {Username}", username);
+                    return false;
+                }
+
+                user.Password = newPassword;
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("密码修改成功 - {Username}", username);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "修改密码时发生错误 - {Username}", username);
+                return false;
             }
         }
     }
