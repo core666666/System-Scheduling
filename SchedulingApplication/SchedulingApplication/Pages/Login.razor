@@ -76,18 +76,46 @@
         align-items: center;
         justify-content: center;
         background-color: #f8f9fa;
+        background-image: url('https://images.unsplash.com/photo-1549880338-65ddcdfd017b?q=80&w=2070&auto=format&fit=crop');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        position: relative;
+    }
+    
+    /* 添加一个半透明覆盖层，提高文本可读性 */
+    .login-page::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.4);
+        z-index: 1;
+    }
+    
+    .container {
+        position: relative;
+        z-index: 2;
     }
     
     .login-icon {
         font-size: 3rem;
-        color: #3a0647;
+        color: #fff;
         margin-bottom: 1rem;
+    }
+    
+    .login-page h2, 
+    .login-page .text-muted {
+        color: #fff !important;
     }
     
     .login-page .card {
         border: none;
         border-radius: 10px;
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.3);
+        background-color: rgba(255, 255, 255, 0.9);
     }
     
     .login-page .btn-primary {
@@ -104,6 +132,40 @@
         border-color: #3a0647;
         box-shadow: 0 0 0 0.25rem rgba(58, 6, 71, 0.25);
     }
+    
+    /* 底部版权信息样式 */
+    .login-page .text-muted {
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    }
+    
+    /* 为移动设备做适配 */
+    @@media (max-width: 768px) {
+        .login-page {
+            padding: 1rem;
+        }
+    }
+    
+    /* 
+    背景图片选项：
+    
+    Option 1 (自然山景 - Unsplash):
+    background-image: url('https://images.unsplash.com/photo-1549880338-65ddcdfd017b?q=80&w=2070&auto=format&fit=crop');
+    
+    Option 2 (现代办公 - Unsplash):
+    background-image: url('https://images.unsplash.com/photo-1497366754035-f200968a6e72?q=80&w=2069&auto=format&fit=crop');
+    
+    Option 3 (简约渐变 - Pexels):
+    background-image: url('https://images.pexels.com/photos/7130555/pexels-photo-7130555.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1');
+    
+    Option 4 (抽象曲线 - Pexels):
+    background-image: url('https://images.pexels.com/photos/3680219/pexels-photo-3680219.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1');
+    
+    Option 5 (苹果风格渐变):
+    background: linear-gradient(135deg, #6e45e2 0%, #88d3ce 100%);
+    
+    Option 6 (苹果风格暗色):
+    background: linear-gradient(135deg, #1a2a6c 0%, #b21f1f 50%, #fdbb2d 100%);
+    */
 </style>
 
 @code {
