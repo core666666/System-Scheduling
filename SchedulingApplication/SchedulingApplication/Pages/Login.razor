@@ -66,19 +66,27 @@
                         </EditForm>
                     </div>
                 </div>
-                <div class="text-center mt-3 text-muted">
-                    <small>&copy; @DateTime.Now.Year 值日排班系统</small>
-                </div>
             </div>
         </div>
     </div>
+    <footer class="login-footer">
+        <div class="footer-content">
+            <div class="copyright">
+                <small>&copy; @DateTime.Now.Year 值日排班系统</small>
+            </div>
+            <div class="powered-by">
+                <small>由.NET 7 Razor技术驱动 © 数字化中心-张三</small>
+            </div>
+        </div>
+    </footer>
 </div>
 
 <style>
     .login-page {
-        height: 100vh;
+        min-height: 100vh;
         width: 100%;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
         background-color: #f8f9fa;
@@ -104,6 +112,8 @@
     .container {
         position: relative;
         z-index: 2;
+        margin: auto;
+        padding: 2rem 1rem;
     }
     
     /* 标题区域优化样式 */
@@ -221,15 +231,57 @@
         box-shadow: 0 0 0 0.25rem rgba(58, 6, 71, 0.25);
     }
     
-    /* 底部版权信息样式 */
-    .login-page .text-muted {
+    /* 页脚样式优化 */
+    .login-footer {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        padding: 1.5rem 0;
+        z-index: 2;
+        text-align: center;
+    }
+    
+    .footer-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        color: rgba(255, 255, 255, 0.8) !important;
+    }
+    
+    .footer-content small {
         text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+        font-size: 0.85rem;
+    }
+    
+    .powered-by {
+        opacity: 0.9;
+    }
+    
+    .copyright {
+        opacity: 0.7;
     }
     
     /* 为移动设备做适配 */
+    @@media (max-height: 700px) {
+        .login-footer {
+            position: relative;
+            margin-top: 2rem;
+        }
+        
+        .container {
+            padding: 1rem;
+        }
+    }
+    
     @@media (max-width: 768px) {
         .login-page {
             padding: 1rem;
+        }
+        
+        .container {
+            padding: 0;
         }
     }
     

@@ -31,6 +31,16 @@
 
                 <article class="content px-4">
                     @Body
+                    <footer class="main-footer">
+                        <div class="footer-content">
+                            <div class="copyright">
+                                <small>&copy; @DateTime.Now.Year 值日排班系统</small>
+                            </div>
+                            <div class="powered-by">
+                                <small>由.NET 7 Razor技术驱动 © 数字化中心-张三</small>
+                            </div>
+                        </div>
+                    </footer>
                 </article>
             </main>
         </div>
@@ -110,6 +120,41 @@
     article.content {
         padding-top: 1.5rem;
         background-color: #f9f9fb;
+    }
+    
+    /* 页脚样式 */
+    .main-footer {
+        margin-top: 2rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
+        text-align: center;
+    }
+    
+    .footer-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        color: #666;
+    }
+    
+    .footer-content small {
+        font-size: 0.85rem;
+    }
+    
+    .copyright {
+        opacity: 0.8;
+    }
+    
+    .powered-by {
+        color: #3a0647;
+        font-weight: 500;
+    }
+    
+    @@media (max-width: 640px) {
+        .main-footer {
+            margin-top: 1.5rem;
+            padding: 1rem 0;
+        }
     }
 </style>
 
