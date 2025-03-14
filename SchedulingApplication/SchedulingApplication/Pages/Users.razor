@@ -159,7 +159,7 @@
     private async Task LoadUserList()
     {
         isLoading = true;
-        userList = await DbContext.Users.ToListAsync();
+        userList = await DbContext.Users.OrderByDescending(b => b.LastLoginTime).OrderByDescending(b => b.IsActive).OrderByDescending(b => b.IsAdmin).ToListAsync();
         isLoading = false;
     }
 

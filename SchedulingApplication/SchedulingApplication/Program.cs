@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.JSInterop;
+using SchedulingApplication.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -76,6 +77,8 @@ builder.Services.AddScoped<AppJsInterop>();
 // builder.Services.AddScoped<AuthService>();
 
 // 添加钉钉服务
+builder.Services.Configure<DingTalkSettings>(
+    builder.Configuration.GetSection("DingTalk"));
 builder.Services.AddScoped<IDingTalkService, DingTalkService>();
 
 var app = builder.Build();

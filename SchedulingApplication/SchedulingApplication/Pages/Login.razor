@@ -30,7 +30,7 @@
                                 <label for="username" class="form-label">用户名</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="fas fa-user"></i></span>
-                                    <InputText id="username" class="form-control" placeholder="admin" @bind-Value="@loginModel.Username" disabled="@isLoggingIn" />
+                                    <InputText id="username" class="form-control" placeholder="请输入用户名" @bind-Value="@loginModel.Username" disabled="@isLoggingIn" />
                                 </div>
                                 <ValidationMessage For="@(() => loginModel.Username)" />
                             </div>
@@ -38,7 +38,7 @@
                                 <label for="password" class="form-label">密码</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                                    <InputText type="password" id="password" class="form-control" placeholder="admin123" @bind-Value="@loginModel.Password" disabled="@isLoggingIn" />
+                                    <InputText type="password" id="password" class="form-control" placeholder="请输入密码" @bind-Value="@loginModel.Password" disabled="@isLoggingIn" />
                                 </div>
                                 <ValidationMessage For="@(() => loginModel.Password)" />
                             </div>
