@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using SchedulingApplication.Models;
 using System.Text;
 using System.Text.Json;
@@ -26,27 +28,24 @@ namespace SchedulingApplication.Services
         {
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Post, "https://api.dingtalk.com/v1.0/oauth2/userAccessToken");
-                var content = new
-                {
-                    clientId = _settings.AppSecret,
-                    clientSecret = _settings.RobotCode,
-                    code = _settings.CoffeeUserId
-                };
+                var request = new HttpRequestMessage(HttpMethod.Post, "https://api.dingtalk.com/v1.0/oauth2/accessToken");
 
-                request.Content = new StringContent(
-                    JsonSerializer.Serialize(content),
-                    Encoding.UTF8,
-                    "application/json");
+                var content = new StringContent(
+                JsonConvert.SerializeObject(new { appKey = _settings.RobotCode, appSecret = _settings.AppSecret }),
+                Encoding.UTF8,
+                "application/json");
+
+                request.Content = content;
 
                 var response = await _httpClient.SendAsync(request);
                 response.EnsureSuccessStatusCode();
                 var responseContent = await response.Content.ReadAsStringAsync();
-                var tokenResponse = JsonSerializer.Deserialize<JsonElement>(responseContent);
+                var result = JsonConvert.DeserializeObject<AccessTokenResponse>(responseContent);
 
-                _accessToken = tokenResponse.GetProperty("accessToken").GetString();
-                var expiresIn = tokenResponse.GetProperty("expireIn").GetInt32();
-                _accessTokenExpiry = DateTime.UtcNow.AddSeconds(expiresIn - 300); // 提前5分钟过期
+                _accessToken = result.AccessToken;
+                _accessTokenExpiry = DateTime.UtcNow.AddSeconds(result.ExpireIn);
+
+                //return _accessToken;
 
                 _logger.LogInformation("成功获取钉钉访问令牌");
             }
@@ -55,6 +54,15 @@ namespace SchedulingApplication.Services
                 _logger.LogError(ex, "获取钉钉访问令牌失败");
                 throw;
             }
+        }
+
+        public class AccessTokenResponse
+        {
+            [JsonProperty("accessToken")]
+            public string AccessToken { get; set; } = string.Empty;
+
+            [JsonProperty("expireIn")]
+            public int ExpireIn { get; set; } = int.MaxValue;
         }
 
         private async Task<string> GetUserIdByMobileAsync(string phoneNumber)
@@ -72,21 +80,22 @@ namespace SchedulingApplication.Services
 
                 var content = new { mobile = phoneNumber };
                 request.Content = new StringContent(
-                    JsonSerializer.Serialize(content),
+                    JsonConvert.SerializeObject(content),
                     Encoding.UTF8,
                     "application/json");
 
                 var response = await _httpClient.SendAsync(request);
                 response.EnsureSuccessStatusCode();
                 var responseContent = await response.Content.ReadAsStringAsync();
-                var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
+                
+                var result = JsonConvert.DeserializeObject<JObject>(responseContent);
 
-                if (result.GetProperty("errcode").GetInt32() == 0)
+                if (result["errcode"].Value<int>() == 0)
                 {
-                    return result.GetProperty("result").GetProperty("userid").GetString() ?? string.Empty;
+                    return result["result"]["userid"].Value<string>() ?? string.Empty;
                 }
 
-                throw new Exception($"获取用户ID失败: {result.GetProperty("errmsg").GetString()}");
+                throw new Exception($"获取用户ID失败: {result["errmsg"].Value<string>()}");
             }
             catch (Exception ex)
             {
@@ -121,22 +130,24 @@ namespace SchedulingApplication.Services
                     robotCode = _settings.RobotCode,
                     userIds = new[] { userId },
                     msgKey = "sampleText",
-                    msgParam = JsonSerializer.Serialize(new { content = message })
+                    msgParam = JsonConvert.SerializeObject(new { content = message })
                 };
 
                 request.Content = new StringContent(
-                    JsonSerializer.Serialize(content),
+                    JsonConvert.SerializeObject(content),
                     Encoding.UTF8,
                     "application/json");
 
                 var response = await _httpClient.SendAsync(request);
                 response.EnsureSuccessStatusCode();
                 var responseContent = await response.Content.ReadAsStringAsync();
-                var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
+                
+                var result = JsonConvert.DeserializeObject<JObject>(responseContent);
 
-                if (result.GetProperty("code").GetString() != "0")
+                if (result["processQueryKey"] == null || string.IsNullOrEmpty(result["processQueryKey"].Value<string>()))
                 {
-                    throw new Exception($"发送消息失败: {result.GetProperty("message").GetString()}");
+                    string errorMessage = result["errmsg"]?.Value<string>() ?? "未知错误";
+                    throw new Exception($"发送消息失败: {errorMessage}");
                 }
 
                 _logger.LogInformation($"成功发送钉钉通知到 {phoneNumber}: {message}");
