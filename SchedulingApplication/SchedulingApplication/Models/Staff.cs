@@ -16,6 +16,9 @@ namespace SchedulingApplication.Models
         [RegularExpression(@"^1[3-9]\d{9}$", ErrorMessage = "请输入有效的手机号码")]
         public string PhoneNumber { get; set; }
 
+        // 钉钉用户ID
+        public string? DingTalkUserId { get; set; }
+
         public bool IsActive { get; set; } = true;
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;

@@ -20,8 +20,8 @@ namespace SchedulingApplication.Models
         public int AdvanceDays { get; set; } = 1;
 
         [Required(ErrorMessage = "通知模板不能为空")]
-        [StringLength(500, ErrorMessage = "通知模板长度不能超过500个字符")]
-        public string NotificationTemplate { get; set; } = "尊敬的{Name}，提醒您明天({Date} {DayOfWeek})将由您值班，请做好准备。";
+        [StringLength(1000, ErrorMessage = "通知模板长度不能超过1000个字符")]
+        public string NotificationTemplate { get; set; } = "# 📅 值日提醒\n\n**<font color='blue'>值班提醒通知</font>**\n\n---\n\n👋 **尊敬的{Name}**：\n\n📢 **温馨提醒**\n\n请您注意，明天({Date} {DayOfWeek})将由您负责值日工作，请做好相关准备。\n\n---\n\n🔹 **请提前安排好您的工作计划**\n🔹 **值日期间请保持电话畅通**\n🔹 **如有特殊情况请及时告知**\n\n---\n\n> 感谢您的配合与支持！��\n\n> 祝您工作愉快！✨✨✨";
 
         public DateTime LastUpdated { get; set; } = DateTime.Now;
 

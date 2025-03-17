@@ -67,6 +67,25 @@
                                 {Date} - 值班日期<br />
                                 {DayOfWeek} - 星期几
                             </div>
+                            <div class="form-text mt-2">
+                                支持Markdown格式和HTML标签，如:<br />
+                                # 标题, ## 二级标题<br />
+                                **粗体**, *斜体*<br />
+                                ---: 分隔线<br />
+                                <font color='blue'>彩色文字</font>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label d-flex justify-content-between">
+                                <span>预览效果</span>
+                                <button type="button" class="btn btn-sm btn-outline-primary" @onclick="PreviewNotification">刷新预览</button>
+                            </label>
+                            <div class="card">
+                                <div class="card-body bg-light preview-area">
+                                    @((MarkupString)previewContent)
+                                </div>
+                            </div>
                         </div>
                         
                         <div class="d-flex justify-content-between">
@@ -74,9 +93,28 @@
                                 <i class="oi oi-check me-1"></i> 保存配置
                             </button>
                             
-                            <button type="button" class="btn btn-outline-success" @onclick="SendTestNotification">
-                                <i class="oi oi-envelope-closed me-1"></i> 发送测试通知
-                            </button>
+                            <div>
+                                <div class="input-group mb-2">
+                                    <label class="input-group-text" for="selectedStaffId">测试接收人</label>
+                                    <select class="form-select" id="selectedStaffId" @bind="selectedStaffId">
+                                        @if (staffList == null || !staffList.Any())
+                                        {
+                                            <option value="">无可选人员</option>
+                                        }
+                                        else
+                                        {
+                                            @foreach (var staff in staffList)
+                                            {
+                                                <option value="@staff.Id">@staff.Name (@staff.PhoneNumber)</option>
+                                            }
+                                        }
+                                    </select>
+                                </div>
+                                
+                                <button type="button" class="btn btn-outline-success w-100" @onclick="SendTestNotification" disabled="@(staffList == null || !staffList.Any())">
+                                    <i class="oi oi-envelope-closed me-1"></i> 发送测试通知
+                                </button>
+                            </div>
                         </div>
                     </EditForm>
                     
@@ -182,6 +220,30 @@
     .status-value {
         flex: 1;
     }
+    
+    .preview-area {
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        padding: 15px;
+        background-color: #fcfcfc;
+        min-height: 200px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .preview-area h1 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .preview-area h2 {
+        font-size: 1.3rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .preview-area hr {
+        margin: 0.75rem 0;
+    }
 </style>
 
 @code {
@@ -189,10 +251,15 @@
     private bool isLoading = true;
     private string message;
     private bool isError;
+    private List<Models.Staff> staffList;
+    private int selectedStaffId;
+    private string previewContent = "";
 
     protected override async Task OnInitializedAsync()
     {
         await LoadConfig();
+        await LoadStaffList();
+        await PreviewNotification();
     }
 
     private async Task LoadConfig()
@@ -222,6 +289,16 @@
         isLoading = false;
     }
 
+    private async Task LoadStaffList()
+    {
+        staffList = await DbContext.Staff.ToListAsync();
+        
+        if (staffList != null && staffList.Any())
+        {
+            selectedStaffId = staffList.First().Id;
+        }
+    }
+
     private async Task SaveConfig()
     {
         try
@@ -231,6 +308,9 @@
             
             message = "配置已成功保存";
             isError = false;
+            
+            // 保存后刷新预览
+            await PreviewNotification();
         }
         catch (Exception ex)
         {
@@ -243,12 +323,12 @@
     {
         try
         {
-            // 获取一个测试用户
-            var staff = await DbContext.Staff.FirstOrDefaultAsync();
+            // 获取选中的员工
+            var staff = await DbContext.Staff.FirstOrDefaultAsync(s => s.Id == selectedStaffId);
             
             if (staff == null)
             {
-                message = "未找到任何人员，请先添加值班人员";
+                message = "未找到所选人员，请重新选择";
                 isError = true;
                 return;
             }
@@ -317,6 +397,47 @@
             case DayOfWeek.Saturday: return "星期六";
             case DayOfWeek.Sunday: return "星期日";
             default: return "";
+        }
+    }
+
+    private async Task PreviewNotification()
+    {
+        if (notificationConfig == null) return;
+        
+        try
+        {
+            // 获取一个示例员工，或创建一个假的用于预览
+            var sampleStaff = staffList?.FirstOrDefault() ?? new Models.Staff { Name = "张三" };
+            
+            // 构建预览内容
+            var template = notificationConfig.NotificationTemplate;
+            var tomorrow = DateTime.Today.AddDays(1);
+            var dayOfWeek = GetChineseDayOfWeek(tomorrow.DayOfWeek);
+            
+            var content = template
+                .Replace("{Name}", sampleStaff.Name)
+                .Replace("{Date}", tomorrow.ToString("yyyy-MM-dd"))
+                .Replace("{DayOfWeek}", dayOfWeek);
+                
+            // 简单的Markdown转HTML转换（实际项目中可能需要使用专门的库）
+            // 这里简单替换一些基本的Markdown语法
+            previewContent = content
+                .Replace("\n", "<br/>")
+                .Replace("# ", "<h1>").Replace("\n<h1>", "</h1><h1>")
+                .Replace("## ", "<h2>").Replace("\n<h2>", "</h2><h2>")
+                .Replace("**", "<strong>")
+                .Replace("*", "<em>")
+                .Replace("---", "<hr>");
+                
+            // 如果是空预览，显示提示信息
+            if (string.IsNullOrWhiteSpace(previewContent))
+            {
+                previewContent = "<em>预览区域 - 编辑模板后可在此处查看效果</em>";
+            }
+        }
+        catch (Exception ex)
+        {
+            previewContent = $"<span class='text-danger'>预览生成失败: {ex.Message}</span>";
         }
     }
 } 

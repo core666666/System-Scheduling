@@ -1,8 +1,10 @@
 @page "/staff"
 @using SchedulingApplication.Data
 @using SchedulingApplication.Models
+@using SchedulingApplication.Services
 @using Microsoft.EntityFrameworkCore
 @inject ApplicationDbContext DbContext
+@inject IDingTalkService DingTalkService
 @attribute [Authorize]
 
 <h3>人员管理</h3>
@@ -67,6 +69,7 @@
                                     <th>ID</th>
                                     <th>姓名</th>
                                     <th>手机号</th>
+                                    <th>钉钉用户ID</th>
                                     <th>操作</th>
                                 </tr>
                             </thead>
@@ -93,6 +96,22 @@
                                             else
                                             {
                                                 @staff.PhoneNumber
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (string.IsNullOrEmpty(staff.DingTalkUserId))
+                                            {
+                                                <span class="text-muted">未获取</span>
+                                                <button class="btn btn-sm btn-outline-primary ms-2" @onclick="() => RefreshDingTalkUserId(staff)" disabled="@isRefreshingDingTalkId">
+                                                    <i class="oi oi-reload"></i> 获取
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <span>@staff.DingTalkUserId</span>
+                                                <button class="btn btn-sm btn-outline-primary ms-2" @onclick="() => RefreshDingTalkUserId(staff)" disabled="@isRefreshingDingTalkId">
+                                                    <i class="oi oi-reload"></i> 刷新
+                                                </button>
                                             }
                                         </td>
                                         <td>
@@ -147,6 +166,28 @@
     </div>
 }
 
+@if (showErrorMessage)
+{
+    <div class="modal fade show" style="display: block; background-color: rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">操作失败</h5>
+                    <button type="button" class="btn-close" @onclick="() => showErrorMessage = false"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger mb-0">
+                        <i class="oi oi-warning me-2"></i> @errorMessage
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="() => showErrorMessage = false">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private List<Models.Staff> staffList = new List<Models.Staff>();
     private Models.Staff newStaff = new Models.Staff();
@@ -154,6 +195,9 @@
     private int? editingStaffId;
     private int? deleteStaffId;
     private bool showDeleteConfirm = false;
+    private bool isRefreshingDingTalkId = false;
+    private bool showErrorMessage = false;
+    private string errorMessage = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -213,5 +257,40 @@
         showDeleteConfirm = false;
         deleteStaffId = null;
         await LoadStaffList();
+    }
+    
+    private async Task RefreshDingTalkUserId(Models.Staff staff)
+    {
+        try
+        {
+            isRefreshingDingTalkId = true;
+            string userId = await DingTalkService.GetUserIdByMobileAsync(staff.PhoneNumber);
+            
+            if (!string.IsNullOrEmpty(userId))
+            {
+                staff.DingTalkUserId = userId;
+                staff.UpdatedAt = DateTime.Now;
+                
+                DbContext.Staff.Update(staff);
+                await DbContext.SaveChangesAsync();
+                
+                // 刷新列表
+                await LoadStaffList();
+            }
+            else
+            {
+                errorMessage = $"无法获取手机号 {staff.PhoneNumber} 对应的钉钉用户ID";
+                showErrorMessage = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"获取钉钉用户ID失败: {ex.Message}";
+            showErrorMessage = true;
+        }
+        finally
+        {
+            isRefreshingDingTalkId = false;
+        }
     }
 } 

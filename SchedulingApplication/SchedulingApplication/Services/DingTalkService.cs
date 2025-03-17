@@ -4,6 +4,7 @@ using Newtonsoft.Json.Linq;
 using SchedulingApplication.Models;
 using System.Text;
 using System.Text.Json;
+using SchedulingApplication.Data;
 
 namespace SchedulingApplication.Services
 {
@@ -14,14 +15,17 @@ namespace SchedulingApplication.Services
         private string? _accessToken;
         private DateTime _accessTokenExpiry = DateTime.MinValue;
         private readonly HttpClient _httpClient;
+        private readonly ApplicationDbContext _dbContext;
 
         public DingTalkService(
             ILogger<DingTalkService> logger,
-            IOptions<DingTalkSettings> settings)
+            IOptions<DingTalkSettings> settings,
+            ApplicationDbContext dbContext)
         {
             _logger = logger;
             _settings = settings.Value;
             _httpClient = new HttpClient();
+            _dbContext = dbContext;
         }
 
         private async Task GetAccessTokenAsync()
@@ -65,7 +69,7 @@ namespace SchedulingApplication.Services
             public int ExpireIn { get; set; } = int.MaxValue;
         }
 
-        private async Task<string> GetUserIdByMobileAsync(string phoneNumber)
+        public async Task<string> GetUserIdByMobileAsync(string phoneNumber)
         {
             try
             {
@@ -113,7 +117,31 @@ namespace SchedulingApplication.Services
                     await GetAccessTokenAsync();
                 }
 
-                var userId = await GetUserIdByMobileAsync(phoneNumber);
+                // 首先从数据库中查找员工记录
+                var staff = _dbContext.Staff.FirstOrDefault(s => s.PhoneNumber == phoneNumber);
+                string userId;
+
+                if (staff != null && !string.IsNullOrEmpty(staff.DingTalkUserId))
+                {
+                    // 使用已保存的用户ID
+                    userId = staff.DingTalkUserId;
+                    _logger.LogInformation($"使用已保存的钉钉用户ID: {userId}");
+                }
+                else
+                {
+                    // 调用钉钉API获取用户ID
+                    userId = await GetUserIdByMobileAsync(phoneNumber);
+                    
+                    // 保存到数据库
+                    if (staff != null && !string.IsNullOrEmpty(userId))
+                    {
+                        staff.DingTalkUserId = userId;
+                        staff.UpdatedAt = DateTime.Now;
+                        await _dbContext.SaveChangesAsync();
+                        _logger.LogInformation($"已将钉钉用户ID保存到数据库: {userId}");
+                    }
+                }
+
                 if (string.IsNullOrEmpty(userId))
                 {
                     throw new Exception($"未找到手机号 {phoneNumber} 对应的钉钉用户");
@@ -129,8 +157,11 @@ namespace SchedulingApplication.Services
                 {
                     robotCode = _settings.RobotCode,
                     userIds = new[] { userId },
-                    msgKey = "sampleText",
-                    msgParam = JsonConvert.SerializeObject(new { content = message })
+                    msgKey = "sampleMarkdown",
+                    msgParam = JsonConvert.SerializeObject(new { 
+                        title = "值日提醒",
+                        text = message
+                    })
                 };
 
                 request.Content = new StringContent(

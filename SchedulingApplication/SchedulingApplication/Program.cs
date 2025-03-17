@@ -231,6 +231,7 @@ using (var scope = app.Services.CreateScope())
                                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                                 Name TEXT NOT NULL,
                                 PhoneNumber TEXT NOT NULL,
+                                DingTalkUserId TEXT NULL,
                                 IsActive INTEGER NOT NULL DEFAULT 1,
                                 CreatedAt TEXT NOT NULL,
                                 UpdatedAt TEXT NULL
@@ -243,8 +244,49 @@ using (var scope = app.Services.CreateScope())
                             
                             INSERT INTO Staff (Id, Name, PhoneNumber, IsActive, CreatedAt)
                             SELECT 2, '李四', '13800000002', 1, datetime('now')
-                            WHERE NOT EXISTS (SELECT 1 FROM Staff WHERE Id = 2);";
-                        command.ExecuteNonQuery();
+                            WHERE NOT EXISTS (SELECT 1 FROM Staff WHERE Id = 2);
+                            
+                            -- 检查是否需要添加DingTalkUserId列
+                            PRAGMA table_info(Staff);";
+                            
+                        using (var reader = command.ExecuteReader())
+                        {
+                            bool hasDingTalkUserId = false;
+                            
+                            // 检查Staff表是否已经有DingTalkUserId列
+                            while (reader.Read())
+                            {
+                                string columnName = reader.GetString(1); // 列名是第二列
+                                if (columnName.Equals("DingTalkUserId", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    hasDingTalkUserId = true;
+                                    break;
+                                }
+                            }
+                            
+                            // 关闭当前读取器
+                            reader.Close();
+                            
+                            // 如果没有DingTalkUserId列，添加它
+                            if (!hasDingTalkUserId)
+                            {
+                                logger.LogInformation("Staff表中缺少DingTalkUserId列，正在添加...");
+                                try
+                                {
+                                    // 执行ALTER TABLE添加列
+                                    command.CommandText = @"
+                                        ALTER TABLE Staff 
+                                        ADD COLUMN DingTalkUserId TEXT NULL;";
+                                    command.ExecuteNonQuery();
+                                    
+                                    logger.LogInformation("成功添加DingTalkUserId列");
+                                }
+                                catch (Exception exCol)
+                                {
+                                    logger.LogError(exCol, "添加DingTalkUserId列时出错");
+                                }
+                            }
+                        }
                     }
                     
                     // 排班表
