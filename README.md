@@ -50,7 +50,7 @@
 ### 通知配置
 可配置通知时间、通知方式和通知内容模板，支持定时通知和即时通知。
 
-![通知配置界面](https://image.baidu.com/search/down?url=http://tvax4.sinaimg.cn/large/0061Cjilly1hzjshrpibcj31hc13s4bf.jpg)
+![通知配置界面](https://image.baidu.com/search/down?url=http://tvax2.sinaimg.cn/large/0061Cjilly1i0gfguk7ltj31ha13o4g1.jpg)
 
 ### 钉钉消息通知集成
 集成钉钉开放平台API，实现值班提醒自动推送到钉钉工作群或个人。
