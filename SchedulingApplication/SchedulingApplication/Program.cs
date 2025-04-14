@@ -81,6 +81,9 @@ builder.Services.Configure<DingTalkSettings>(
     builder.Configuration.GetSection("DingTalk"));
 builder.Services.AddScoped<IDingTalkService, DingTalkService>();
 
+// 添加后台通知服务
+builder.Services.AddHostedService<NotificationService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

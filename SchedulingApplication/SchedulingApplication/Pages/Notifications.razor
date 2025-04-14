@@ -186,17 +186,146 @@
                 <h5 class="card-title mb-3">通知记录</h5>
                 
                 <div class="notification-logs">
-                    <div class="alert alert-info">
-                        <i class="oi oi-info me-2"></i>
-                        暂无通知记录
-                    </div>
-                    
-                    <!-- 这里可以添加通知日志列表 -->
+                    @if (isLoadingLogs)
+                    {
+                        <div class="text-center py-3">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">加载中...</span>
+                            </div>
+                            <p class="mt-2">加载通知记录中...</p>
+                        </div>
+                    }
+                    else if (notificationLogs == null || !notificationLogs.Any())
+                    {
+                        <div class="alert alert-info">
+                            <i class="oi oi-info me-2"></i>
+                            暂无通知记录
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>发送时间</th>
+                                        <th>接收人</th>
+                                        <th>类型</th>
+                                        <th>状态</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var log in notificationLogs)
+                                    {
+                                        <tr>
+                                            <td>@log.SentTime.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                            <td>@log.RecipientName</td>
+                                            <td>
+                                                @if (log.Type == NotificationType.Test)
+                                                {
+                                                    <span class="badge bg-info">测试消息</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-primary">定时通知</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (log.IsSuccess)
+                                                {
+                                                    <span class="badge bg-success">发送成功</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-danger" title="@log.ErrorMessage">发送失败</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-secondary" @onclick="() => ViewLogDetails(log)">
+                                                    查看详情
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <div>
+                                <span class="text-muted">共 @notificationLogs.Count 条记录</span>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary" @onclick="LoadNotificationLogs">
+                                <i class="oi oi-reload me-1"></i> 刷新
+                            </button>
+                        </div>
+                    }
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+@if (selectedLog != null)
+{
+    <div class="modal fade show" style="display: block;" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">通知详情</h5>
+                    <button type="button" class="btn-close" @onclick="CloseLogDetails"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <div class="fw-bold">发送时间</div>
+                        <div>@selectedLog.SentTime.ToString("yyyy-MM-dd HH:mm:ss")</div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="fw-bold">接收人</div>
+                        <div>@selectedLog.RecipientName (@selectedLog.RecipientPhone)</div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="fw-bold">消息类型</div>
+                        <div>
+                            @(selectedLog.Type == NotificationType.Test ? "测试消息" : "定时通知")
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="fw-bold">发送状态</div>
+                        <div>
+                            @if (selectedLog.IsSuccess)
+                            {
+                                <span class="text-success">发送成功</span>
+                            }
+                            else
+                            {
+                                <div>
+                                    <span class="text-danger">发送失败</span>
+                                    <div class="alert alert-danger mt-2">
+                                        @selectedLog.ErrorMessage
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="fw-bold">通知内容</div>
+                        <div class="card">
+                            <div class="card-body bg-light">
+                                @((MarkupString)selectedLog.Content.Replace("\n", "<br/>"))
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseLogDetails">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
 
 <style>
     .status-info {
@@ -254,12 +383,18 @@
     private List<Models.Staff> staffList;
     private int selectedStaffId;
     private string previewContent = "";
+    
+    // 添加通知记录相关变量
+    private List<NotificationLog> notificationLogs;
+    private bool isLoadingLogs = true;
+    private NotificationLog selectedLog;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadConfig();
         await LoadStaffList();
         await PreviewNotification();
+        await LoadNotificationLogs();
     }
 
     private async Task LoadConfig()
@@ -319,6 +454,38 @@
         }
     }
 
+    private async Task LoadNotificationLogs()
+    {
+        isLoadingLogs = true;
+        
+        try
+        {
+            notificationLogs = await DbContext.NotificationLogs
+                .OrderByDescending(l => l.SentTime)
+                .Take(50)  // 最多显示最近50条记录
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "加载通知记录失败");
+            notificationLogs = new List<NotificationLog>(); // 初始化为空列表，而非null
+        }
+        finally
+        {
+            isLoadingLogs = false;
+        }
+    }
+    
+    private void ViewLogDetails(NotificationLog log)
+    {
+        selectedLog = log;
+    }
+    
+    private void CloseLogDetails()
+    {
+        selectedLog = null;
+    }
+
     private async Task SendTestNotification()
     {
         try
@@ -343,8 +510,40 @@
                 .Replace("{Date}", tomorrow.ToString("yyyy-MM-dd"))
                 .Replace("{DayOfWeek}", dayOfWeek);
             
-            // 发送钉钉通知
-            await DingTalkService.SendNotificationAsync(staff.PhoneNumber, content);
+            bool isSuccess = true;
+            string errorMessage = "";  // 初始化为空字符串而不是null
+            
+            try
+            {
+                // 发送钉钉通知
+                await DingTalkService.SendNotificationAsync(staff.PhoneNumber, content);
+            }
+            catch (Exception ex)
+            {
+                isSuccess = false;
+                errorMessage = ex.Message;
+                throw;
+            }
+            finally
+            {
+                // 记录通知日志 (不管成功与否都记录)
+                var notificationLog = new NotificationLog
+                {
+                    SentTime = DateTime.Now,
+                    RecipientName = staff.Name,
+                    RecipientPhone = staff.PhoneNumber,
+                    Content = content,
+                    Type = NotificationType.Test,
+                    IsSuccess = isSuccess,
+                    ErrorMessage = errorMessage
+                };
+                
+                DbContext.NotificationLogs.Add(notificationLog);
+                await DbContext.SaveChangesAsync();
+                
+                // 刷新日志列表
+                await LoadNotificationLogs();
+            }
             
             message = $"已成功发送测试通知到 {staff.Name} ({staff.PhoneNumber})";
             isError = false;
